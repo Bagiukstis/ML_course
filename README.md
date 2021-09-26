@@ -1,4 +1,4 @@
-#Exercises for 2021 MSc course in Machine Learning
+Exercises for 2021 MSc course in Machine Learning
 
 Content of the course include: \
 • Supervised learning methods including K-nearest neighbours, decision trees, linear discriminant analysis, support vector machines, and neural networks. \
