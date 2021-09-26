@@ -58,7 +58,7 @@ train_concat = np.concatenate([c_5, c_6, c_8])
 train_concat_cov, train_concat_mean = params(train_concat)
 
 #Establishing a PCA subspace
-c_2_dim, train_eigenvector = dimensionality_reduction(x= train_concat, mean= train_concat_mean, cov= train_concat_cov, dimensions=3)
+c_2_dim, train_eigenvector = dimensionality_reduction(x= train_concat, mean= train_concat_mean, cov= train_concat_cov, dimensions=2)
 
 #Transforming class 5 points to PCA subspace
 class_5_test = train_eigenvector.T@(c_5_t - train_concat_mean).T
