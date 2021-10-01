@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
+from _overused_functions import Overused
 
 def load_np(df):
     numpy = np.asarray(df.values)
@@ -81,8 +82,8 @@ xy_126_test = load_np(df_5)
 xy_126_class = load_np(df_6)
 
 ##### Estimating parameters for distributions #####
-mean_x, std_x, var_x, cov_x = params(x_train)
-mean_y, std_y, var_y, cov_y = params(y_train)
+cov_x, mean_x = Overused().params(x_train)
+cov_y, mean_y = Overused().params(y_train)
 
 ##### Creating the distributions #####
 l_x = multivariate_normal(mean=mean_x, cov = cov_x) #multivariate distribution for X (consists of X and Y points)
