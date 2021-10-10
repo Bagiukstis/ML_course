@@ -54,13 +54,15 @@ def assign_label(class_1, xy_test):
     plt_numpy_2 = np.asarray(plot_list_2)
     plt_numpy_3 = np.asarray(plot_list_3)
     return plt_numpy_1, plt_numpy_2, plt_numpy_3
-def k_means(data, iterations=1):
+def k_means(data):
     #find a function to make it random later
     r_5_prev = data[randrange(len(data))]
     r_6_prev = data[randrange(len(data))]
     r_8_prev = data[randrange(len(data))]
     label = np.zeros(len(data))
-    for k in range(1, iterations):
+    iterations = 0
+    while True:
+        iterations += 1
         for i in range(len(c_2_dim)):
             distance_1 = np.linalg.norm(data[i] - r_5_prev)
             distance_2 = np.linalg.norm(data[i] - r_6_prev)
@@ -77,7 +79,7 @@ def k_means(data, iterations=1):
         mean_diff_3 = np.linalg.norm(r_8 - r_8_prev)
 
         if mean_diff_1 < 1 and mean_diff_2 < 1 and mean_diff_3 < 1:
-            logger.info('Iterations required before convergence K = {0}'.format(k))
+            logger.info('Iterations required before convergence i = {0}'.format(iterations))
             break
         else:
             r_5_prev = r_5
@@ -146,7 +148,7 @@ c_5, c_6, c_8 = to_3_classes(data, train=True)
 
 c_2_dim = np.concatenate([c_5, c_6, c_8])
 
-grp_1, grp_2, grp_3 = k_means(c_2_dim, iterations=30)
+grp_1, grp_2, grp_3 = k_means(c_2_dim)
 
 em_1, em_2, em_3, pred = EM_algorithm(grp_1, grp_2, grp_3, c_2_dim)
 mean_1 = np.mean(em_1, axis=1)
@@ -154,14 +156,7 @@ mean_2 = np.mean(em_2, axis=1)
 mean_3 = np.mean(em_3, axis=1)
 
 logging.shutdown()
-#
-# plt.scatter(grp_1[:,0], grp_1[:,1], edgecolors='green')
-# plt.scatter(mean_1[0], mean_1[1], marker='x')
-# plt.scatter(grp_2[:,0], grp_2[:,1], edgecolors='blue')
-# plt.scatter(mean_2[0], mean_2[1], marker='x')
-# plt.scatter(grp_3[:,0], grp_3[:,1], edgecolors='orange')
-# plt.scatter(mean_3[0], mean_3[1], marker='x')
-# plt.show()
+
 ########### PLOTTING ###############
 plt.scatter(em_1[:,0], em_1[:,1], edgecolors='orange')
 plt.scatter(mean_1[0], mean_1[1], marker='x')
@@ -170,3 +165,11 @@ plt.scatter(mean_2[0], mean_2[1], marker='x')
 plt.scatter(em_3[:,0], em_3[:,1], edgecolors='blue')
 plt.scatter(mean_3[0], mean_3[1], marker='x')
 plt.show()
+
+# plt.scatter(grp_1[:,0], grp_1[:,1], edgecolors='green')
+# plt.scatter(mean_1[0], mean_1[1], marker='x')
+# plt.scatter(grp_2[:,0], grp_2[:,1], edgecolors='blue')
+# plt.scatter(mean_2[0], mean_2[1], marker='x')
+# plt.scatter(grp_3[:,0], grp_3[:,1], edgecolors='orange')
+# plt.scatter(mean_3[0], mean_3[1], marker='x')
+# plt.show()
