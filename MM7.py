@@ -4,7 +4,7 @@ from sklearn import svm
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import logging
-
+import datetime
 # Logger configuration parameters
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -49,23 +49,37 @@ test_labels = np.concatenate(test_labels)
 target_classes = [i*np.ones(len(test[i])) for i in range(L)]
 
 # Different SVM approaches. Be careful with setting the L (number of datasets) to include.
-# It takes an insane amount of time to build the model.
-svc_linear = svm.SVC(kernel='linear').fit(train_concat, train_labels)
-svc_poly = svm.SVC(kernel='poly').fit(train_concat, train_labels)
+# It takes an insane amount of time to build a model.
+start_time = datetime.datetime.now()
 svc_rbf = svm.SVC(kernel='rbf').fit(train_concat, train_labels)
+logging.info('Model name: {0}, Train time: {1}, Number of data sets: {2}'.format('RBF SVC', datetime.datetime.now() - start_time, L))
+
+start_time = datetime.datetime.now()
+svc_poly = svm.SVC(kernel='poly').fit(train_concat, train_labels)
+logging.info('Model name: {0}, Train time: {1}, Number of data sets: {2}'.format('Poly SVC', datetime.datetime.now() - start_time, L))
+
+start_time = datetime.datetime.now()
 svc_sigmoid = svm.SVC(kernel='sigmoid').fit(train_concat, train_labels)
 
+# Program fails to solve svc with a linear kernel beyond 3 data sets.
+# start_time = datetime.datetime.now()
+# svc_linear = svm.SVC(kernel='linear').fit(train_concat, train_labels)
+# logging.info('Model name: {0}, Train time: {1}, Number of data sets: {2}'.format('Linear SVC', datetime.datetime.now() - start_time, L))
+
+logging.warning('Training complete')
+
 # Titles for plotting
-titles = ['Linear SVC', 'Poly SVC', 'RBF SVC', 'Sigmoid SVC']
-#titles = ['Linear SVC', 'Poly SVC']
+titles = ['RBF SVC', 'Poly SVC', 'Sigmoid SVC']
 
 # Fits a prediction set to trained SVM classifier with different kernel parameters
 # cnf plots a confusion matrix, while logger logs for the events.
-for j, clf in enumerate((svc_linear, svc_poly, svc_rbf, svc_sigmoid)):
+for j, clf in enumerate((svc_rbf, svc_poly, svc_sigmoid)):
+    start_time = datetime.datetime.now()
     SVM_prediction = clf.predict(test_concat)
     accuracy = [np.sum(SVM_prediction[test_labels == i] == i) / len(target_classes[i]) * 100 for i in range(L)]
+    print('Done: {0}'.format(titles[j]))
     logging.info('Accuracy of {0}, is \n {1} \n With mean of {2} %'.format(titles[j], accuracy, np.mean(accuracy)))
-    logging.critical('----------------------------------------------------------------------------------------------')
+    logging.warning('Prediction complete: {0}, prediction time: {1}'.format(titles[j], datetime.datetime.now() - start_time))
     cnf = confusion_matrix(test_labels, SVM_prediction)
     cnf_m = ConfusionMatrixDisplay(cnf)
     cnf_m.plot()
