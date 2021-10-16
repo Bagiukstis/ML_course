@@ -1,23 +1,26 @@
 '''
-This exercise features SVM classification on full MNIST data set.
-SVM is creating decision boundaries on 784 dimension data sets with 60000 points in total.
-The results are presented in confusion matrix form. Accuracies are logged in a log
+This exercise features SVM classification on PCA dimensionality deduced data sets.
+PCA reduces the data sets from 784 dimensions to only 2 dimensions.
+Then, SVM is performed to do classification.
+The results are presented in confusion matrix form together as countour plt to visualize points and decision boundaries.
 
-Result: Very accurate classification
+Result: Very inaccurate classification.
 '''
 from scipy.io import loadmat
 import numpy as np
 from sklearn import svm
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.decomposition import PCA
 import logging
 import datetime
-# Logger configuration parameters
+
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
 
-file_handler = logging.FileHandler('Logs/MM7.log')
+file_handler = logging.FileHandler('Logs/MM7_extra.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
@@ -55,45 +58,63 @@ test_labels = np.concatenate(test_labels)
 # Individual target classes
 target_classes = [i*np.ones(len(test[i])) for i in range(L)]
 
-# Different SVM approaches. Be careful with setting the L (number of datasets) to include.
-# It takes an insane amount of time to build a model.
+# PCA to reduce to 2D
+pca = PCA(n_components=2)
+train_reduced = pca.fit_transform(train_concat, train_labels)
+test_reduced = pca.fit_transform(test_concat, test_labels)
+
+# SVM to classify
+
 start_time = datetime.datetime.now()
-svc_rbf = svm.SVC(kernel='rbf').fit(train_concat, train_labels)
+svc_rbf = svm.SVC(kernel='rbf').fit(train_reduced, train_labels)
 logging.info('Model name: {0}, Train time: {1}, Number of data sets: {2}'.format('RBF SVC', datetime.datetime.now() - start_time, L))
 
 start_time = datetime.datetime.now()
-svc_poly = svm.SVC(kernel='poly').fit(train_concat, train_labels)
+svc_poly = svm.SVC(kernel='poly').fit(train_reduced, train_labels)
 logging.info('Model name: {0}, Train time: {1}, Number of data sets: {2}'.format('Poly SVC', datetime.datetime.now() - start_time, L))
 
 start_time = datetime.datetime.now()
-svc_sigmoid = svm.SVC(kernel='sigmoid').fit(train_concat, train_labels)
-
-# Program fails to solve svc with a linear kernel beyond 3 data sets.
-# start_time = datetime.datetime.now()
-# svc_linear = svm.SVC(kernel='linear').fit(train_concat, train_labels)
-# logging.info('Model name: {0}, Train time: {1}, Number of data sets: {2}'.format('Linear SVC', datetime.datetime.now() - start_time, L))
+svc_sigmoid = svm.SVC(kernel='sigmoid').fit(train_reduced, train_labels)
 
 logging.warning('Training complete')
 
-# Titles for plotting
 titles = ['RBF SVC', 'Poly SVC', 'Sigmoid SVC']
 
-# Fits a prediction set to trained SVM classifier with different kernel parameters
-# cnf plots a confusion matrix, while logger logs for the events.
+# Creating a mesh grid for plotting points (took it from a guide)
+# Uncomment blow if boundary plt is desired
+
+# x_min, x_max = test_reduced[:, 0].min() - 1, test_reduced[:, 0].max() + 1
+# y_min, y_max = test_reduced[:, 1].min() - 1, test_reduced[:, 1].max() + 1
+# xx, yy = np.meshgrid(np.arange(x_min, x_max, 1),
+#                      np.arange(y_min, y_max, 1))
+
 for j, clf in enumerate((svc_rbf, svc_poly, svc_sigmoid)):
     start_time = datetime.datetime.now()
-    SVM_prediction = clf.predict(test_concat)
+    SVM_prediction = clf.predict(test_reduced)
     accuracy = [np.sum(SVM_prediction[test_labels == i] == i) / len(target_classes[i]) * 100 for i in range(L)]
-    print('Done: {0}'.format(titles[j]))
     logging.info('Accuracy of {0}, is \n {1} \n With mean of {2} %'.format(titles[j], accuracy, np.mean(accuracy)))
-    logging.warning('Prediction complete: {0}, prediction time: {1}'.format(titles[j], datetime.datetime.now() - start_time))
     cnf = confusion_matrix(test_labels, SVM_prediction)
     cnf_m = ConfusionMatrixDisplay(cnf)
     cnf_m.plot()
     cnf_m.ax_.set(title=titles[j])
+
+    # Uncomment below if boundary plt is desired
+
+    # fig, ax = plt.subplots()
+    # Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    # # Reshaping labels to test points
+    # Z = Z.reshape(xx.shape)
+
+    #Color area:
+    # ax.contourf(xx, yy, Z, cmap=plt.cm.coolwarm, alpha=0.8)
+    #
+    # #Testing points
+    # ax.scatter(test_reduced[:, 0], test_reduced[:, 1], c=test_labels, cmap=plt.cm.coolwarm)
+    # ax.set_title(titles[j])
+
+
+    logging.warning(
+        'Prediction complete: {0}, prediction time: {1}'.format(titles[j], datetime.datetime.now() - start_time))
+    print('Done: {0}'.format(titles[j]))
     plt.pause(1)
 plt.show()
-
-
-
-
