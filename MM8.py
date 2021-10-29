@@ -1,6 +1,6 @@
 '''
-Multilayer perceptron
-
+Deep learning of MNIST dataset using sklearn.
+GridSearchCV finds the best parameters that the model should run on.
 '''
 from sklearn.neural_network import MLPClassifier
 from scipy.io import loadmat
