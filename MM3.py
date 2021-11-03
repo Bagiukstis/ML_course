@@ -5,16 +5,29 @@ to which class do the points belong to.
 
 Method used: MLE and MAP. Considering if we know something prior about our data or not.
 '''
-
-import pandas as pd
 import numpy as np
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 from _overused_functions import Overused
+from scipy.io import loadmat
 
-def load_np(df):
-    numpy = np.asarray(df.values)
-    return numpy
+def to_sep(data, train=True):
+    '''
+    :param data: raw data set
+    :param train: Boolean for a train set
+    :return: either train classes or test classes
+    '''
+    if train:
+        trn_x = data['trn_x']
+        trn_y = data['trn_y']
+        return trn_x, trn_y
+    tst_x = data['tst_x']
+    tst_xy = data['tst_xy']
+    tst_xy_class = data['tst_xy_class']
+    tst_xy_126 = data['tst_xy_126']
+    tst_xy_126_class = data['tst_xy_126_class']
+    return tst_x, tst_xy, tst_xy_class, tst_xy_126, tst_xy_126_class
+
 def plot_points(numpy):
     x, y = numpy.T
     return x, y
@@ -66,20 +79,9 @@ def rate(x_train, y_train):
     return rate_x, rate_y
 
 ######Loading the datasets######
-df = pd.read_csv('MM3_material/trn_x.txt', sep='  ', names=['col1', 'col2'])
-df_1 = pd.read_csv('MM3_material/trn_y.txt', sep='  ', names=['col1', 'col2'])
-df_3 = pd.read_csv('MM3_material/tst_xy.txt', sep='  ', names=['col1', 'col2'])
-df_4 = pd.read_csv('MM3_material/tst_xy_class.txt', sep='  ', names=['col1'])
-df_5 = pd.read_csv('MM3_material/tst_xy_126.txt', sep='  ', names=['col1', 'col2'])
-df_6 = pd.read_csv('MM3_material/tst_xy_126_class.txt', sep='  ', names=['col1'])
-
-##### Loading DF's as np arrays ####
-x_train = load_np(df)
-y_train = load_np(df_1)
-xy_test = load_np(df_3)
-xy_test_class = load_np(df_4)
-xy_126_test = load_np(df_5)
-xy_126_class = load_np(df_6)
+data = loadmat('MM3_material/dataset1_G_noisy.mat')
+x_train, y_train = to_sep(data, train=True)
+x_test, xy_test, xy_test_class, xy_126_test, xy_126_class = to_sep(data, train=False)
 
 ##### Estimating parameters for distributions #####
 cov_x, mean_x = Overused().params(x_train)
