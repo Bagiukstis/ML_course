@@ -1,8 +1,3 @@
-'''
-Deep learning of MNIST dataset.
-Currently implemented activation functions: Relu and Sigmoid
-Total number of layers: 3
-'''
 from scipy.io import loadmat
 import numpy as np
 import logging
