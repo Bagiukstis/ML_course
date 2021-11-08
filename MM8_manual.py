@@ -6,6 +6,8 @@ from sklearn.base import BaseEstimator
 from sklearn.preprocessing import OneHotEncoder
 from scipy.stats import truncnorm
 from _overused_functions import Overused
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 # Logger
 logger = logging.getLogger()
@@ -18,20 +20,14 @@ file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 
-#TODO: Add evaluation metrics through epochs
-#TODO: Make it viable with more layers than 1. Currently if more than 1 added - accuracy gets poorer. Find out why.
-
 
 def truncated_normal(mean=0, sd=1, low=0, upp=10):
     return truncnorm((low-mean)/sd, (upp-mean)/sd, loc=mean, scale=sd)
 
+#def confusion_matrix(input)
 class MultilayerPerceptron(BaseEstimator):
-    def __init__(self, inputLayer, hiddenLayer_1, outputLayer, learningRate, activation_func, max_epochs, classes_number, bias=True):
-        self.inputLayer = inputLayer
-        self.hiddenLayer_1 = hiddenLayer_1
-        # self.hiddenLayer_2 = hiddenLayer_2
-        # self.hiddenLayer_3 = hiddenLayer_3
-        self.outputLayer = outputLayer
+    def __init__(self, structure_of_network, learningRate, activation_func, max_epochs,bias=True):
+        self.structure_of_network = structure_of_network
         self.learningRate = learningRate
         self.max_epochs = max_epochs
         self.activation_func = activation_func
@@ -41,8 +37,6 @@ class MultilayerPerceptron(BaseEstimator):
             self.bias = 1
         else:
             self.bias = 0
-
-        self.classes_number = classes_number
         self.create_weight_matrices()
     pass
 
@@ -53,128 +47,126 @@ class MultilayerPerceptron(BaseEstimator):
                             'Relu': (lambda x: 1*(x>0))}
 
     def create_weight_matrices(self):
-        rad = 1 / np.sqrt(self.inputLayer + self.bias)
-        X = truncated_normal(mean=0, sd=1, low=-rad, upp=rad)
-        self.weight_hidden_1 = X.rvs((self.hiddenLayer_1, self.inputLayer + self.bias))
+        self.weight_matrices = []
 
-        # rad = 1 / np.sqrt(self.hiddenLayer_1 + self.bias)
-        # X = truncated_normal(mean=0, sd=1, low=-rad, upp=rad)
-        # self.weight_hidden_2 = X.rvs((self.hiddenLayer_2, self.hiddenLayer_1 + self.bias))
-        #
-        # rad = 1 / np.sqrt(self.hiddenLayer_2 + self.bias)
-        # X = truncated_normal(mean=0, sd=1, low=-rad, upp=rad)
-        # self.weight_hidden_3 = X.rvs((self.hiddenLayer_3, self.hiddenLayer_2 + self.bias))
+        layer_index = 1
+        total_layers = len(self.structure_of_network)
+        while layer_index < total_layers:
+            # iterating through the entire structure
+            nodes_in = self.structure_of_network[layer_index-1]
+            nodes_out = self.structure_of_network[layer_index]
 
-        rad = 1 / np.sqrt(self.hiddenLayer_1 + self.bias)
-        X = truncated_normal(mean=0, sd=1, low=-rad, upp=rad)
-        self.weight_output = X.rvs((self.outputLayer, self.hiddenLayer_1 + self.bias))
-    def train_single_vector(self, input_vector, target_vector):
-        # Adding bias to the end of input vector
-        if self.bias != 0:
-            input_vector = np.concatenate((input_vector, [self.bias]))
-        input_vector_t = np.array(input_vector, ndmin=2).T
-        target_vector_t = np.array(target_vector, ndmin=2).T
+            # number of random guesses
+            n = (nodes_in + self.bias) * nodes_out
+            rad = 1 / np.sqrt(nodes_in + self.bias)
+            X = truncated_normal(mean=2, sd=1, low=-rad, upp=rad)
 
-        self.output_hidden_1 = self.activation((np.dot(self.weight_hidden_1, input_vector_t)))
+            #  forming a weight vector
+            weight_matrix = X.rvs(n).reshape((nodes_out, nodes_in + self.bias))
+            self.weight_matrices.append(weight_matrix)
+            layer_index +=1
 
-        # # adding bias to the end of hidden layer
-        if self.bias != 0:
-            self.output_hidden_1 = np.concatenate((self.output_hidden_1, [[self.bias]]))
-        #
-        # self.output_hidden_2 = self.activation((np.dot(self.weight_hidden_2, self.output_hidden_1)))
-        # if self.bias != 0:
-        #     self.output_hidden_2 = np.concatenate((self.output_hidden_2, [[self.bias]]))
-        # self.output_hidden_3 = self.activation((np.dot(self.weight_hidden_3, self.output_hidden_2)))
-        # if self.bias != 0:
-        #     self.output_hidden_3 = np.concatenate((self.output_hidden_3, [[self.bias]]))
+    def train(self, input_vector, target_vector):
+        total_layers = len(self.structure_of_network)
+        input_vector = np.array(input_vector, ndmin=2).T
+        layer_index = 0
 
+        res_vectors = [input_vector]
+        while layer_index < total_layers - 1:
+            # Activating every neuron in the network layer-wise
+            # Input layer -> hidden_layer_1 -> hidden_layer_2 .... -> output_layer
 
+            # when init, [-1] returns 0.
+            input_vector_1 = res_vectors[-1]
 
-        self.output_layer = self.activation((np.dot(self.weight_output, self.output_hidden_1)))
+            # Add bias to the vector
+            if self.bias != 0:
+                input_vector_1 = np.concatenate((input_vector_1, [[self.bias]]))
+                res_vectors[-1] = input_vector_1
 
-        error = (target_vector - self.output_layer)
-        total_error = sum(error)/len(input_vector)
+            # Steepest gradient descent for neuron
+            self.output_vector = self.activation(np.dot(self.weight_matrices[layer_index], input_vector_1))
 
-        # Backpropagation
-        self.backpropagation(input_vector_t, target_vector_t)
+            # The output of one layer is the input to the next layer:
+            res_vectors.append(self.output_vector)
+            layer_index +=1
 
-        return total_error
-    def fit(self, train_data, test_data):
+        layer_index = total_layers - 1
+        target_vector = np.array(target_vector, ndmin=2).T
+
+        output_err = target_vector - self.output_vector
+        while layer_index > 0:
+            # Backpropagating
+            # Ouput_layer -> hidden_layer_3 -> hidden_layer_2 ... -> Input_layer
+
+            # The output of one layer is the input to the next layer
+            output_vector = res_vectors[layer_index]
+            in_vector = res_vectors[layer_index-1]
+
+            if self.bias != 0 and not layer_index==(total_layers-1):
+                output_vector = output_vector[:-1,:].copy()
+
+            # Derivative for backpropagation of neuron.
+            tmp = output_err * self.deriv(output_vector)
+            tmp = np.dot(tmp, in_vector.T)
+
+            # Updated weights
+            self.weight_matrices[layer_index-1] += self.learningRate * tmp
+
+            # New output_error
+            output_err = np.dot(self.weight_matrices[layer_index-1].T, output_err)
+            if self.bias != 0:
+                output_err = output_err[:-1,:]
+            layer_index -= 1
+
+        # Returning original error for eval of epoch
+        return target_vector - self.output_vector
+
+    def fit(self, train_data, test_data, eval=None):
         end_epoch = 1
-        total_error = 0
+        total_error_list = []
         while(end_epoch <=self.max_epochs):
             start_time = datetime.datetime.now()
+            total_error = 0
             for i in range(len(train_data)):
-                err = self.train_single_vector(train_data[i], test_data[i])
+                err = self.train(train_data[i], test_data[i])
                 total_error = total_error + err
-                #print('Row: ',i)
             total_error = (total_error/len(train_data))
-            print('Epoch {0}, Error {1}'.format(end_epoch, total_error))
+            total_error_list.append(total_error)
+
+            print('Epoch {0}'.format(end_epoch))
             print('Epoch time: ',datetime.datetime.now()-start_time)
             end_epoch += 1
+        if eval == True:
+            if self.max_epochs == 1:
+                plt.scatter(self.max_epochs, total_error_list)
+            plt.plot([i for i in range(self.max_epochs)], [i.flatten() for i in total_error_list])
+            plt.show()
         return self
-    def backpropagation(self, inputs, target_vector):
-        # calculating the error_j = (output - expected) * transfer_derivative(output)
-        # calculating the error = (weight_k * error_j)
-        # where k is hidden_layer and j is output_layer
 
-        error_output = target_vector - self.output_layer
-        tmp = error_output * self.deriv(self.output_layer)
-        self.weight_output += self.learningRate * np.dot(tmp, self.output_hidden_1.T) # output_hidden_3
-
-
-
-
-
-        # hidden_error = np.dot(self.weight_output.T, error_output)
-        # tmp = hidden_error * self.deriv(self.output_hidden_3)
-        # if self.bias != 0:
-        #     self.weight_hidden_3 += self.learningRate * np.dot(tmp, self.output_hidden_2.T)[:-1, :]
-        #
-        # hidden_error_2 = np.dot(self.weight_hidden_3.T, hidden_error[:-1, :])
-        # #error_output_2 = hidden_error_2 - self.output_hidden_2
-        # tmp = hidden_error_2 * self.deriv(self.output_hidden_2)
-        # if self.bias != 0:
-        #     self.weight_hidden_2 += self.learningRate * np.dot(tmp, self.output_hidden_1.T)[:-1,:]
-
-
-        # hidden_error_3 = np.dot(self.weight_hidden_2.T, hidden_error_2[:-1, :])
-        # tmp = hidden_error_3 * self.deriv(self.output_hidden_1)
-
-        hidden_error = np.dot(self.weight_output.T, error_output)
-        tmp = hidden_error * self.deriv(self.output_hidden_1)
-        if self.bias != 0:
-            # removing the last row to get rid of 0's
-            self.weight_hidden_1 += self.learningRate * np.dot(tmp, inputs.T)[:-1, :]
-        else:
-            self.weight_hidden_1 += self.learningRate * np.dot(tmp, inputs.T)
-
-    def predict(self, input_vector):
+    def predict(self, input_vector_raw):
+        total_layers = len(self.structure_of_network)
         predictions = []
-        for i in range(len(input_vector)):
+
+        for i in range(len(input_vector_raw)):
             # Forward propagating through the network
             if self.bias != 0:
-                input_vector_input = np.concatenate((input_vector[i], [self.bias]))
-            input_vector_t = np.array(input_vector_input, ndmin=2).T
-            self.output_hidden_1 = self.activation((np.dot(self.weight_hidden_1, input_vector_t)))
-            if self.bias != 0:
-                self.output_hidden_1 = np.concatenate((self.output_hidden_1, [[self.bias]]))
+                input_vector_t = np.concatenate((input_vector_raw[i], [self.bias]))
+            input_vector = np.array(input_vector_t, ndmin=2).T
 
-            # Argmax to decide which neuron is the biggest
-            # self.output_layer = self.activation((np.dot(self.weight_output, self.output_hidden_1)))
-            # self.output_hidden_2 = self.activation((np.dot(self.weight_hidden_2, self.output_hidden_1)))
-            # if self.bias != 0:
-            #     self.output_hidden_2 = np.concatenate((self.output_hidden_2, [[self.bias]]))
-            #
-            # self.output_hidden_3 = self.activation((np.dot(self.weight_hidden_3, self.output_hidden_2)))
-            # if self.bias != 0:
-            #     self.output_hidden_3 = np.concatenate((self.output_hidden_3, [[self.bias]]))
+            layer_index = 1
+            output_vector = 0
+            while layer_index < total_layers:
+                # Passing the vector through every layer of the network.
+                output_vector = self.activation(np.dot(self.weight_matrices[layer_index-1], input_vector))
+                input_vector = output_vector
 
-            self.output_layer = self.activation((np.dot(self.weight_output, self.output_hidden_1)))
+                if self.bias != 0:
+                    input_vector = np.concatenate((input_vector, [[self.bias]]))
+                layer_index += 1
 
-            predictions.append(np.argmax(self.output_layer))
+            predictions.append(np.argmax(output_vector))
         return np.asarray(predictions)
-
 
 data = loadmat('MM4_material/mnist_all.mat')
 
@@ -191,12 +183,20 @@ test_onehot = onehot_encoder.fit_transform(test_labels.reshape(-1,1))
 train_onehot[train_onehot==0] = 0.01
 train_onehot[train_onehot==1] = 0.99
 
-MLP = MultilayerPerceptron(inputLayer=784, hiddenLayer_1=20, outputLayer=10, learningRate=0.1, max_epochs=5, activation_func='Sigmoid', classes_number=10, bias=True)
-MLP_fit = MLP.fit(train_imgs, train_onehot)
+MLP = MultilayerPerceptron(structure_of_network=[784, 100, 50, 10], learningRate=0.1, max_epochs=100, activation_func='Sigmoid', bias=True)
+MLP_fit = MLP.fit(train_imgs, train_onehot, eval=True)
 prediction_labels = MLP_fit.predict(test_imgs)
 
 accuracy = [np.sum(prediction_labels[test_labels == i] == i) / len(accuracy_target_classes[i]) * 100 for i in range(10)]
+
 logging.info('Neural network parameters: ')
 logging.info(MLP_fit.get_params())
 logging.info('Accuracy: ')
 logging.info(accuracy)
+
+# Confusion matrix
+cnf = confusion_matrix(test_labels, prediction_labels)
+cnf_m = ConfusionMatrixDisplay(cnf)
+cnf_m.plot()
+
+plt.show()
