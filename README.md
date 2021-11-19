@@ -7,7 +7,7 @@ Content of the course include: \
 • Bayesian decision theory, bias and variance trade-off, and cross-validation.\
 • Reinforcement learning. 
 
-Every Mini Module (MM) represents one lecture and there are 12 lectures in total. If there is an [x] sign, then it means that this lecture did not include any exercises. The topics are as following:
+Every Mini Module (MM) represents one lecture and there are 13 lectures in total. If there is an [x] sign, then it means that this lecture did not include any exercises. The topics are as following:
 
 1. Introduction [x]
 2. Bayesian decision theory [x]
@@ -21,3 +21,4 @@ Every Mini Module (MM) represents one lecture and there are 12 lectures in total
 10. Time series models [x]
 11. Graphical models 
 12. Algorithm-independent machine learning
+13. Reinforcement Learning [x]
